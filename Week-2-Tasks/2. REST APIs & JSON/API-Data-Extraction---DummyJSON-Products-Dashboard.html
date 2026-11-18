@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>DummyJSON Products Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:system-ui,sans-serif;color:var(--content-color-primary);padding:var(--spacing-m,12px);font-size:13px}
+  h1{font-size:15px;font-weight:700;margin-bottom:10px}
+  .caption{font-size:11px;color:var(--content-color-secondary);margin-bottom:12px}
+  .kpi-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+  .kpi{flex:1;min-width:90px;background:var(--background-color-secondary);border:1px solid var(--border-color-default);border-radius:6px;padding:8px 10px;text-align:center}
+  .kpi .val{font-size:20px;font-weight:700;color:var(--content-color-primary)}
+  .kpi .lbl{font-size:10px;color:var(--content-color-secondary);margin-top:2px}
+  .charts-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+  .chart-box{flex:1;min-width:200px;background:var(--background-color-secondary);border:1px solid var(--border-color-default);border-radius:6px;padding:10px}
+  .chart-box h2{font-size:12px;font-weight:600;margin-bottom:8px;color:var(--content-color-secondary)}
+  .chart-wrap{position:relative;height:160px}
+  .table-box{background:var(--background-color-secondary);border:1px solid var(--border-color-default);border-radius:6px;padding:10px}
+  .table-box h2{font-size:12px;font-weight:600;margin-bottom:8px;color:var(--content-color-secondary)}
+  .search-row{display:flex;gap:6px;margin-bottom:8px;align-items:center}
+  .search-row input{flex:1;padding:4px 8px;border:1px solid var(--border-color-default);border-radius:4px;background:var(--background-color-primary);color:var(--content-color-primary);font-size:12px}
+  .search-row select{padding:4px 6px;border:1px solid var(--border-color-default);border-radius:4px;background:var(--background-color-primary);color:var(--content-color-primary);font-size:12px}
+  .tbl-wrap{overflow-y:auto;max-height:220px}
+  table{width:100%;border-collapse:collapse;font-size:11px}
+  th{position:sticky;top:0;background:var(--background-color-secondary);padding:5px 6px;text-align:left;cursor:pointer;user-select:none;border-bottom:2px solid var(--border-color-default);white-space:nowrap}
+  th:hover{color:var(--content-color-primary)}
+  th .sort-icon{margin-left:3px;opacity:.5}
+  td{padding:4px 6px;border-bottom:1px solid var(--border-color-default);white-space:nowrap}
+  tr:hover td{background:var(--background-color-primary)}
+  .badge{display:inline-block;padding:1px 6px;border-radius:10px;font-size:10px;font-weight:600}
+  .cat-beauty{background:#f9d0e0;color:#8b1a4a}
+  .cat-fragrances{background:#d0e8f9;color:#1a4a8b}
+  .cat-furniture{background:#d0f9e0;color:#1a6b3a}
+  .cat-groceries{background:#f9f0d0;color:#7a5a00}
+  .star{color:#f5a623}
+  .row-count{font-size:10px;color:var(--content-color-secondary);margin-top:6px}
+</style>
+</head>
+<body>
+<h1>DummyJSON Products — API Response Dashboard</h1>
+<p class="caption">Source: GET https://dummyjson.com/products?limit=30&amp;skip=0 &nbsp;|&nbsp; 30 products loaded &nbsp;|&nbsp; 4 categories</p>
+
+<div class="kpi-row" id="kpiRow"></div>
+<div class="charts-row">
+  <div class="chart-box">
+    <h2>Avg Price by Category</h2>
+    <div class="chart-wrap"><canvas id="priceChart" role="img" aria-label="Average price per category bar chart"></canvas></div>
+  </div>
+  <div class="chart-box">
+    <h2>Products by Category</h2>
+    <div class="chart-wrap"><canvas id="catChart" role="img" aria-label="Product count per category doughnut chart"></canvas></div>
+  </div>
+  <div class="chart-box">
+    <h2>Avg Rating by Category</h2>
+    <div class="chart-wrap"><canvas id="ratingChart" role="img" aria-label="Average rating per category bar chart"></canvas></div>
+  </div>
+</div>
+
+<div class="table-box">
+  <h2>All Products</h2>
+  <div class="search-row">
+    <input id="searchInput" type="text" placeholder="Search by name or brand…" aria-label="Search products"/>
+    <select id="catFilter" aria-label="Filter by category">
+      <option value="">All Categories</option>
+      <option value="beauty">Beauty</option>
+      <option value="fragrances">Fragrances</option>
+      <option value="furniture">Furniture</option>
+      <option value="groceries">Groceries</option>
+    </select>
+  </div>
+  <div class="tbl-wrap">
+    <table id="prodTable">
+      <thead>
+        <tr>
+          <th data-col="id">#<span class="sort-icon">↕</span></th>
+          <th data-col="title">Product<span class="sort-icon">↕</span></th>
+          <th data-col="category">Category<span class="sort-icon">↕</span></th>
+          <th data-col="brand">Brand<span class="sort-icon">↕</span></th>
+          <th data-col="price">Price<span class="sort-icon">↕</span></th>
+          <th data-col="discountPercentage">Discount<span class="sort-icon">↕</span></th>
+          <th data-col="rating">Rating<span class="sort-icon">↕</span></th>
+          <th data-col="stock">Stock<span class="sort-icon">↕</span></th>
+        </tr>
+      </thead>
+      <tbody id="prodBody"></tbody>
+    </table>
+  </div>
+  <div class="row-count" id="rowCount"></div>
+</div>
+
+<script>
+const products = [
+  {id:1,title:"Essence Mascara Lash Princess",category:"beauty",price:9.99,discountPercentage:10.48,rating:2.56,stock:99,brand:"Essence"},
+  {id:2,title:"Eyeshadow Palette with Mirror",category:"beauty",price:19.99,discountPercentage:18.19,rating:2.86,stock:34,brand:"Glamour Beauty"},
+  {id:3,title:"Powder Canister",category:"beauty",price:14.99,discountPercentage:9.84,rating:4.64,stock:89,brand:"Velvet Touch"},
+  {id:4,title:"Red Lipstick",category:"beauty",price:12.99,discountPercentage:12.16,rating:4.36,stock:91,brand:"Chic Cosmetics"},
+  {id:5,title:"Red Nail Polish",category:"beauty",price:8.99,discountPercentage:11.44,rating:4.32,stock:79,brand:"Nail Couture"},
+  {id:6,title:"Calvin Klein CK One",category:"fragrances",price:49.99,discountPercentage:1.89,rating:4.37,stock:29,brand:"Calvin Klein"},
+  {id:7,title:"Chanel Coco Noir Eau De",category:"fragrances",price:129.99,discountPercentage:16.51,rating:4.26,stock:58,brand:"Chanel"},
+  {id:8,title:"Dior J'adore",category:"fragrances",price:89.99,discountPercentage:14.72,rating:3.80,stock:98,brand:"Dior"},
+  {id:9,title:"Dolce Shine Eau de",category:"fragrances",price:69.99,discountPercentage:0.62,rating:3.96,stock:4,brand:"Dolce & Gabbana"},
+  {id:10,title:"Gucci Bloom Eau de",category:"fragrances",price:79.99,discountPercentage:14.39,rating:2.74,stock:91,brand:"Gucci"},
+  {id:11,title:"Annibale Colombo Bed",category:"furniture",price:1899.99,discountPercentage:8.57,rating:4.77,stock:88,brand:"Annibale Colombo"},
+  {id:12,title:"Annibale Colombo Sofa",category:"furniture",price:2499.99,discountPercentage:14.40,rating:3.92,stock:60,brand:"Annibale Colombo"},
+  {id:13,title:"Bedside Table African Cherry",category:"furniture",price:299.99,discountPercentage:19.09,rating:2.87,stock:64,brand:"Furniture Co."},
+  {id:14,title:"Knoll Saarinen Executive Conference Chair",category:"furniture",price:499.99,discountPercentage:2.01,rating:4.88,stock:26,brand:"Knoll"},
+  {id:15,title:"Wooden Bathroom Sink With Mirror",category:"furniture",price:799.99,discountPercentage:8.80,rating:3.59,stock:7,brand:"Bath Trends"},
+  {id:16,title:"Apple",category:"groceries",price:1.99,discountPercentage:12.62,rating:4.19,stock:8,brand:null},
+  {id:17,title:"Beef Steak",category:"groceries",price:12.99,discountPercentage:9.61,rating:4.47,stock:86,brand:null},
+  {id:18,title:"Cat Food",category:"groceries",price:8.99,discountPercentage:9.58,rating:3.13,stock:46,brand:null},
+  {id:19,title:"Chicken Meat",category:"groceries",price:9.99,discountPercentage:13.70,rating:3.19,stock:97,brand:null},
+  {id:20,title:"Cooking Oil",category:"groceries",price:4.99,discountPercentage:9.33,rating:4.80,stock:10,brand:null},
+  {id:21,title:"Cucumber",category:"groceries",price:1.49,discountPercentage:0.16,rating:4.07,stock:84,brand:null},
+  {id:22,title:"Dog Food",category:"groceries",price:10.99,discountPercentage:10.27,rating:4.55,stock:71,brand:null},
+  {id:23,title:"Eggs",category:"groceries",price:2.99,discountPercentage:11.05,rating:2.53,stock:9,brand:null},
+  {id:24,title:"Fish Steak",category:"groceries",price:14.99,discountPercentage:4.23,rating:3.78,stock:74,brand:null},
+  {id:25,title:"Green Bell Pepper",category:"groceries",price:1.29,discountPercentage:0.16,rating:3.25,stock:33,brand:null},
+  {id:26,title:"Green Chili Pepper",category:"groceries",price:0.99,discountPercentage:1.00,rating:3.66,stock:3,brand:null},
+  {id:27,title:"Honey Jar",category:"groceries",price:6.99,discountPercentage:14.40,rating:3.97,stock:34,brand:null},
+  {id:28,title:"Ice Cream",category:"groceries",price:5.49,discountPercentage:8.69,rating:3.39,stock:27,brand:null},
+  {id:29,title:"Juice",category:"groceries",price:3.99,discountPercentage:12.06,rating:3.94,stock:50,brand:null},
+  {id:30,title:"Kiwi",category:"groceries",price:2.49,discountPercentage:15.22,rating:4.93,stock:99,brand:null}
+];
+
+const cats = ["beauty","fragrances","furniture","groceries"];
+const catColors = ["#f9d0e0","#d0e8f9","#d0f9e0","#f9f0d0"];
+const catBorders = ["#c0607a","#607ac0","#60a070","#c0a030"];
+
+// KPIs
+const totalProducts = products.length;
+const avgPrice = products.reduce((s,p)=>s+p.price,0)/totalProducts;
+const avgRating = products.reduce((s,p)=>s+p.rating,0)/totalProducts;
+const avgDiscount = products.reduce((s,p)=>s+p.discountPercentage,0)/totalProducts;
+const totalStock = products.reduce((s,p)=>s+p.stock,0);
+
+const kpiData = [
+  {val: totalProducts, lbl: "Total Products"},
+  {val: "$"+avgPrice.toFixed(2), lbl: "Avg Price"},
+  {val: avgRating.toFixed(2)+"★", lbl: "Avg Rating"},
+  {val: avgDiscount.toFixed(1)+"%", lbl: "Avg Discount"},
+  {val: totalStock, lbl: "Total Stock"}
+];
+const kpiRow = document.getElementById("kpiRow");
+kpiData.forEach(k=>{
+  const d = document.createElement("div");
+  d.className="kpi";
+  d.innerHTML=`<div class="val">${k.val}</div><div class="lbl">${k.lbl}</div>`;
+  kpiRow.appendChild(d);
+});
+
+// Aggregates by category
+function aggByCat(field){
+  return cats.map(c=>{
+    const items = products.filter(p=>p.category===c);
+    return items.reduce((s,p)=>s+p[field],0)/items.length;
+  });
+}
+function countByCat(){return cats.map(c=>products.filter(p=>p.category===c).length);}
+
+const chartDefaults = {
+  plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>" "+ctx.parsed.y?.toFixed(2)??ctx.parsed}}},
+  scales:{x:{ticks:{font:{size:10}},grid:{display:false}},y:{ticks:{font:{size:10}},grid:{color:"rgba(128,128,128,0.15)"}}}
+};
+
+// Price chart
+new Chart(document.getElementById("priceChart"),{
+  type:"bar",
+  data:{labels:cats.map(c=>c[0].toUpperCase()+c.slice(1)),datasets:[{data:aggByCat("price"),backgroundColor:catColors,borderColor:catBorders,borderWidth:1.5,borderRadius:4}]},
+  options:{...chartDefaults,plugins:{...chartDefaults.plugins,tooltip:{callbacks:{label:ctx=>" $"+ctx.parsed.y.toFixed(2)}}}}
+});
+
+// Doughnut
+new Chart(document.getElementById("catChart"),{
+  type:"doughnut",
+  data:{labels:cats.map(c=>c[0].toUpperCase()+c.slice(1)),datasets:[{data:countByCat(),backgroundColor:catColors,borderColor:catBorders,borderWidth:1.5}]},
+  options:{plugins:{legend:{display:true,position:"bottom",labels:{font:{size:10},boxWidth:10}},tooltip:{callbacks:{label:ctx=>` ${ctx.label}: ${ctx.parsed}`}}},cutout:"55%"}
+});
+
+// Rating chart
+new Chart(document.getElementById("ratingChart"),{
+  type:"bar",
+  data:{labels:cats.map(c=>c[0].toUpperCase()+c.slice(1)),datasets:[{data:aggByCat("rating"),backgroundColor:catColors,borderColor:catBorders,borderWidth:1.5,borderRadius:4}]},
+  options:{...chartDefaults,scales:{...chartDefaults.scales,y:{...chartDefaults.scales.y,min:0,max:5}},plugins:{...chartDefaults.plugins,tooltip:{callbacks:{label:ctx=>" ★ "+ctx.parsed.y.toFixed(2)}}}}
+});
+
+// Table
+let sortCol="id", sortDir=1;
+let filtered = [...products];
+
+function stars(r){return "★".repeat(Math.round(r))+"☆".repeat(5-Math.round(r));}
+function renderTable(){
+  const body = document.getElementById("prodBody");
+  body.innerHTML="";
+  filtered.forEach(p=>{
+    const tr=document.createElement("tr");
+    tr.innerHTML=`
+      <td>${p.id}</td>
+      <td title="${p.title}">${p.title.length>28?p.title.slice(0,26)+"…":p.title}</td>
+      <td><span class="badge cat-${p.category}">${p.category}</span></td>
+      <td>${p.brand||"—"}</td>
+      <td>$${p.price.toFixed(2)}</td>
+      <td>${p.discountPercentage.toFixed(1)}%</td>
+      <td><span class="star" title="${p.rating}">${p.rating.toFixed(2)}</span></td>
+      <td>${p.stock}</td>`;
+    body.appendChild(tr);
+  });
+  document.getElementById("rowCount").textContent=`Showing ${filtered.length} of ${products.length} products`;
+}
+
+function applyFilters(){
+  const q=document.getElementById("searchInput").value.toLowerCase();
+  const cat=document.getElementById("catFilter").value;
+  filtered=products.filter(p=>{
+    const matchQ=!q||(p.title.toLowerCase().includes(q)||(p.brand||"").toLowerCase().includes(q));
+    const matchC=!cat||p.category===cat;
+    return matchQ&&matchC;
+  });
+  filtered.sort((a,b)=>{
+    const av=a[sortCol]??0, bv=b[sortCol]??0;
+    return typeof av==="string"?av.localeCompare(bv)*sortDir:(av-bv)*sortDir;
+  });
+  renderTable();
+}
+
+document.getElementById("searchInput").addEventListener("input",applyFilters);
+document.getElementById("catFilter").addEventListener("change",applyFilters);
+
+document.querySelectorAll("th[data-col]").forEach(th=>{
+  th.addEventListener("click",()=>{
+    const col=th.dataset.col;
+    if(sortCol===col)sortDir*=-1; else{sortCol=col;sortDir=1;}
+    document.querySelectorAll("th .sort-icon").forEach(s=>s.textContent="↕");
+    th.querySelector(".sort-icon").textContent=sortDir===1?"↑":"↓";
+    applyFilters();
+  });
+});
+
+applyFilters();
+</script>
+</body>
+</html>
