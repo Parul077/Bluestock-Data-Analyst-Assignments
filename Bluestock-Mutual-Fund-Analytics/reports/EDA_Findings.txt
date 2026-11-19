@@ -1,0 +1,24 @@
+BLUESTOCK MUTUAL FUND ANALYTICS
+DAY 3: EXPLORATORY DATA ANALYSIS FINDINGS
+============================================================
+
+1. Equity has the highest number of schemes in the fund master dataset (34).
+
+2. SBI Mutual Fund has the highest latest recorded AUM (₹1,250,000.00 crore).
+
+3. The highest SIP inflow was recorded in 2025-12-01 00:00:00 (₹31,002.00 crore).
+
+4. The most frequently represented investor age group is 26-35.
+
+5. Madhya Pradesh has the highest total SIP transaction amount.
+
+6. Total folios changed from 13.26 crore to 26.12 crore over the available observation period.
+
+7. Banking has the highest average portfolio sector allocation (21.74%).
+
+8. SBI Small Cap Fund - Regular Plan - Growth has the highest three-year return (23.39%).
+
+9. ICICI Pru Liquid Fund - Regular - Growth has the highest Sharpe ratio (7.68).
+
+10. The strongest positive NAV return correlation is between HDFC Top 100 Fund - Regular Plan - Growth and HDFC Short Term Debt Fund - Regular - Growth (0.046).
+
